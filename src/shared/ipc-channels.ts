@@ -37,6 +37,6 @@ export const IPC_CHANNELS = {
   WINDOW_ACTION: 'window-action'
 } as const
 
-export const PAGE_SIZE = 2000
+export const PAGE_SIZE = 1000
 export const PREFETCH_THRESHOLD = 200
 export const PAGE_CACHE_SIZE = 5

@@ -105,7 +105,7 @@ function emptySearch(): SearchState {
 }
 
 function pageSize(settings: AppSettings): number {
-  return settings.pageSize || 2000
+  return settings.pageSize || 1000
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
