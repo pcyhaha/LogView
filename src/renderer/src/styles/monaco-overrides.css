@@ -1,0 +1,31 @@
+/* Monaco Editor overrides for LogView */
+.monaco-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.monaco-editor .line-numbers {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Match decoration */
+.monaco-editor .find-match-highlight {
+  background-color: var(--selection-background);
+  border: 1px solid var(--primary-color);
+}
+
+.monaco-editor .current-find-match {
+  background-color: var(--primary-color);
+}
+
+/* Override Monaco's default colors to match dark theme */
+.monaco-editor .monaco-editor-background {
+  background-color: var(--editor-background);
+}
+
+.monaco-editor .monaco-editor-fold {
+  background-color: transparent;
+}
+
+.monaco-editor .mtc-token {
+  color: var(--text-primary);
+}

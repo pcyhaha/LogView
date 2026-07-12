@@ -1,0 +1,16 @@
+export const FILE_ENCODING = {
+  PAGE_SIZE: 2000,
+  PREFETCH_THRESHOLD: 200,
+  PAGE_CACHE_SIZE: 5,
+  MAX_FILE_SIZE_TO_INDEX: 5 * 1024 * 1024 * 1024 // 5GB
+} as const
+
+export const CONFIG = {
+  PAGE_SIZE: FILE_ENCODING.PAGE_SIZE,
+  PREFETCH_THRESHOLD: 200,
+  PAGE_CACHE_SIZE: 5,
+  INDEX_CHUNK_SIZE: 100000,
+  INDEXING_BATCH_SIZE: 500000,
+  MAX_FILE_SIZE_TO_INDEX: 5 * 1024 * 1024 * 1024, // 5GB
+  MONACO_LINE_NUMBERS_FONT_FAMILY: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+} as const

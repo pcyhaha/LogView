@@ -1,0 +1,19 @@
+:root {
+  --header-height: 40px;
+  --status-height: 30px;
+  --sidebar-width: 300px;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --border-radius-sm: 4px;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 500ms;
+}

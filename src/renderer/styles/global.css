@@ -1,0 +1,47 @@
+:root {
+  --primary-color: #007acc;
+  --secondary-color: #0a66c2;
+  --background-color: #1e1e1e;
+  --editor-background: #1e1e1e;
+  --surface-color: #252526;
+  --border-color: #3e3e42;
+  --text-primary: #cccccc;
+  --text-secondary: #969696;
+  --text-muted: #858585;
+  --error-color: #f48771;
+  --warning-color: #e2c08d;
+  --success-color: #4ec9b0;
+  --highlight-yellow: #ffff00;
+  --line-numbers-color: #858585;
+  --selection-background: #264f78;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}

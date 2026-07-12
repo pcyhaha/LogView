@@ -1,0 +1,25 @@
+appId: com.logview.app
+productName: LogView
+electronDist: node_modules/electron/dist
+directories:
+  buildResources: build
+files:
+  - package.json
+  - out/**
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!node_modules/.bin/*'
+  - '!electron.vite.config.*'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+win:
+  executableName: LogView
+  target:
+    # 单文件免安装绿色版：直接一个 exe 双击运行，数据写在 exe 同级目录
+    - target: portable
+      arch:
+        - x64
+portable:
+  # 用 zip 而非 7z 打包内部归档，避开本机 7za 报 "System ERROR" 的问题（zip 走 Node 内置，不调用 7za）
+  useZip: true
+  artifactName: ${name}-${version}-portable.${ext}
