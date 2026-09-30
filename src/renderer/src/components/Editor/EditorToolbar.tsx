@@ -19,17 +19,19 @@ const ENCODINGS = [
 interface EditorToolbarProps {
   tab: Tab
   onToggleSearch: () => void
+  onToggleFilter: () => void
   onOpenGoto: () => void
   isSearchOpen: boolean
   onOpenColoring: () => void
   onOpenBookmarks: () => void
   onOpenTimeline: () => void
-  activePanel: 'search' | 'coloring' | 'bookmarks' | 'timeline' | null
+  activePanel: 'search' | 'filter' | 'coloring' | 'bookmarks' | 'timeline' | null
 }
 
 export function EditorToolbar({
   tab,
   onToggleSearch,
+  onToggleFilter,
   onOpenGoto,
   isSearchOpen,
   onOpenColoring,
@@ -143,6 +145,13 @@ export function EditorToolbar({
 
       <button className={isSearchOpen ? 'active' : ''} onClick={onToggleSearch} title="搜索 (Ctrl+F)">
         搜索
+      </button>
+      <button
+        className={activePanel === 'filter' ? 'active' : ''}
+        onClick={onToggleFilter}
+        title="按关键词过滤（保留/隐藏匹配行）"
+      >
+        过滤
       </button>
       <button
         className={activePanel === 'coloring' ? 'active' : ''}

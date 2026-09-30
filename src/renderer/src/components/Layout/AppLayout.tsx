@@ -6,13 +6,14 @@ import { TabBar } from '../TabBar/TabBar'
 import { EditorToolbar } from '../Editor/EditorToolbar'
 import { LogViewer } from '../Editor/LogViewer'
 import { SearchPanel } from '../Search/SearchPanel'
+import { FilterPanel } from '../Filter/FilterPanel'
 import { GotoLineDialog } from '../Dialogs/GotoLineDialog'
 import { ColoringRuleEditor } from '../ColoringRules/ColoringRuleEditor'
 import { BookmarkPanel } from '../Bookmarks/BookmarkPanel'
 import { TimelineView } from '../Timeline/TimelineView'
 import { StatusBar } from './StatusBar'
 
-type Panel = 'search' | 'coloring' | 'bookmarks' | 'timeline' | null
+type Panel = 'search' | 'filter' | 'coloring' | 'bookmarks' | 'timeline' | null
 
 let listenersRegistered = false
 
@@ -176,6 +177,7 @@ export function AppLayout() {
           <EditorToolbar
             tab={activeTab}
             onToggleSearch={() => openPanel('search')}
+            onToggleFilter={() => openPanel('filter')}
             onOpenGoto={() => setGotoOpen(true)}
             isSearchOpen={panel === 'search'}
             onOpenColoring={() => openPanel('coloring')}
@@ -199,6 +201,9 @@ export function AppLayout() {
             </div>
             {panel === 'search' && (
               <SearchPanel tab={activeTab} onClose={closeSearch} />
+            )}
+            {panel === 'filter' && (
+              <FilterPanel tab={activeTab} onClose={() => setPanel(null)} />
             )}
             {panel === 'bookmarks' && (
               <BookmarkPanel tab={activeTab} onClose={() => setPanel(null)} />

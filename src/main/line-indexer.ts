@@ -1,6 +1,11 @@
 import { createReadStream } from 'fs'
 import { stat } from 'fs/promises'
 
+// Threshold for the early (progressive) resolve that lets the first page show
+// quickly while indexing continues in the background. It is NOT a limit on how
+// many line offsets we record — every line's offset must be stored, otherwise
+// getLineOffset falls back to fileSize for lines past this count and readPage
+// would allocate a huge buffer (freeze). See the note in the data handler.
 const INITIAL_INDEX_LINES = 100000
 
 interface LineIndex {
@@ -49,9 +54,14 @@ export async function buildLineIndex(
         lineCount++
         const absoluteOffset = absolutePos + nlPos + 1 // start of next line
 
-        if (lineCount <= INITIAL_INDEX_LINES) {
-          initialOffsets.push(absoluteOffset)
-        }
+        // Record EVERY line's offset. Previously this was gated by
+        // `lineCount <= INITIAL_INDEX_LINES`, which truncated the offset array
+        // at 100k lines for large files. The line count (totalLines) still grew
+        // to the full size, so getLineOffset returned fileSize for any line past
+        // 100k, and readPage then computed a byte range spanning from line 100k
+        // to EOF — allocating a multi-GB buffer and freezing the app while
+        // paging forward. Store all offsets unconditionally.
+        initialOffsets.push(absoluteOffset)
 
         // Skip past the newline; the remaining view starts at absoluteOffset
         buf = buf.subarray(nlPos + 1)

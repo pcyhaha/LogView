@@ -16,6 +16,9 @@ export const IPC_CHANNELS = {
   // Search
   GREP_FILE: 'grep-file',
 
+  // Filter (view-level include/exclude)
+  FILTER_FILE: 'filter-file',
+
   // Export
   EXPORT_RESULTS: 'export-results',
 

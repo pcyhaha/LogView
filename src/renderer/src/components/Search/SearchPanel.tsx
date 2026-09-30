@@ -3,11 +3,14 @@ import { useAppStore } from '@renderer/stores/app-store'
 import type { Tab } from '@renderer/stores/app-store'
 import type { GrepOptions } from '@shared/types'
 import type { SearchScope } from '@shared/search-matcher'
+import { VirtualList } from '../Common/VirtualList'
 
 interface SearchPanelProps {
   tab: Tab
   onClose: () => void
 }
+
+const ROW_HEIGHT = 28
 
 export function SearchPanel({ tab, onClose }: SearchPanelProps) {
   const search = useAppStore((s) => s.search)
@@ -139,12 +142,14 @@ export function SearchPanel({ tab, onClose }: SearchPanelProps) {
         </div>
       )}
 
-      <div className="search-results">
-        {matches.map((m, i) => {
+      <VirtualList
+        items={matches}
+        itemHeight={ROW_HEIGHT}
+        getKey={(m, i) => `${m.lineNumber}-${i}`}
+        renderItem={(m, i) => {
           const activeMatch = i === activeIndex ? m : undefined
           return (
             <div
-              key={`${m.lineNumber}-${i}`}
               className={`search-result${i === activeIndex ? ' active' : ''}`}
               onClick={() => useAppStore.getState().jumpToSearchResult(tab.id, i)}
             >
@@ -152,8 +157,9 @@ export function SearchPanel({ tab, onClose }: SearchPanelProps) {
               {renderLine(m.lineContent, activeMatch?.matchStart, activeMatch?.matchEnd)}
             </div>
           )
-        })}
-      </div>
+        }}
+        className="search-results"
+      />
     </div>
   )
 }

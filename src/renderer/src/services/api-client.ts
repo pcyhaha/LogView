@@ -1,5 +1,5 @@
 import { IPC_CHANNELS } from '@shared/ipc-channels'
-import type { AppSettings, GrepOptions, GrepMatch, FileMetadata, TimelineResult } from '@shared/types'
+import type { AppSettings, GrepOptions, GrepMatch, FileMetadata, TimelineResult, FilterResult } from '@shared/types'
 
 // Thin typed wrapper around the preload-exposed window.api.
 const w = window as unknown as { api: any }
@@ -29,6 +29,15 @@ export const apiClient = {
     options?: Partial<GrepOptions>
     maxMatches?: number
   }): Promise<{ matches: GrepMatch[]; totalCount: number }> => w.api.grepFile(data),
+
+  filterFile: (data: {
+    filePath: string
+    pattern: string
+    encoding: string
+    mode: 'include' | 'exclude'
+    options?: Partial<GrepOptions>
+    maxLines?: number
+  }): Promise<FilterResult> => w.api.filterFile(data),
 
   exportResults: (data: { filePath: string; matches: GrepMatch[] }) => w.api.exportResults(data),
 

@@ -1,4 +1,4 @@
-import type { AppSettings, GrepOptions, GrepMatch, TimelineResult } from '../shared/types'
+import type { AppSettings, GrepOptions, GrepMatch, TimelineResult, FilterResult } from '../shared/types'
 
 export interface Api {
   openFile: (
@@ -60,6 +60,15 @@ export interface Api {
     matches: GrepMatch[]
     totalCount: number
   }>
+
+  filterFile: (data: {
+    filePath: string
+    pattern: string
+    encoding: string
+    mode: 'include' | 'exclude'
+    options?: Partial<GrepOptions>
+    maxLines?: number
+  }) => Promise<FilterResult>
 
   exportResults: (data: {
     filePath: string

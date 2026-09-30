@@ -88,6 +88,19 @@ export interface TimelineResult {
   totalLines: number
 }
 
+export type FilterMode = 'include' | 'exclude'
+
+export interface FilterLine {
+  lineNumber: number
+  content: string
+}
+
+export interface FilterResult {
+  lines: FilterLine[]
+  totalCount: number
+  truncated: boolean
+}
+
 export interface AppSettings {
   pageSize: number
   theme: 'dark' | 'light'

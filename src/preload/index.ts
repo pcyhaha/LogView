@@ -14,6 +14,7 @@ const api: Api = {
   stopTail: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.STOP_TAIL, filePath),
 
   grepFile: (data) => ipcRenderer.invoke(IPC_CHANNELS.GREP_FILE, data),
+  filterFile: (data) => ipcRenderer.invoke(IPC_CHANNELS.FILTER_FILE, data),
   exportResults: (data) => ipcRenderer.invoke(IPC_CHANNELS.EXPORT_RESULTS, data),
   buildTimeline: (data) => ipcRenderer.invoke(IPC_CHANNELS.TIMELINE, data),
 

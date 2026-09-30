@@ -4,7 +4,7 @@ import { IPC_CHANNELS } from '../shared/ipc-channels'
 import { openFile, readPage, readLines, getLineCount } from './file-service'
 import { buildLineIndex } from './line-indexer'
 import { detectEncoding } from './encoding-service'
-import { grepFile } from './search-service'
+import { grepFile, filterFile } from './search-service'
 import { buildTimeline } from './timeline-service'
 import { startTail, stopTail } from './tail-service'
 import {
@@ -94,6 +94,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow | null): void {
         options: data.options,
         maxMatches: data.maxMatches
       })
+    }
+  )
+
+  ipcMain.handle(
+    IPC_CHANNELS.FILTER_FILE,
+    async (
+      _event,
+      data: {
+        filePath: string
+        pattern: string
+        encoding: string
+        mode: 'include' | 'exclude'
+        options?: Partial<GrepOptions>
+        maxLines?: number
+      }
+    ) => {
+      return await filterFile(data)
     }
   )
 
