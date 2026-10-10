@@ -1,14 +1,30 @@
-import { open } from 'fs/promises'
-import { buildLineIndex, getLineIndex, getLineOffset } from './line-indexer'
+import { open, FileHandle } from 'fs/promises'
+import { buildLineIndex, getLineIndex, getLineOffset, invalidateIndex } from './line-indexer'
 import { detectEncoding, decodeBuffer } from './encoding-service'
 import { FILE_ENCODING } from '../shared/constants'
 
-interface FileReadOptions {
-  filePath: string
-  encoding: string
-  startLine?: number
-  endLine?: number
-  currentPage?: number
+// 长生命周期文件句柄缓存。翻页/跳转读取非常频繁，之前每次读取都要
+// open + read + close 一轮 syscall；复用句柄可省掉打开/关闭开销。
+const handleCache = new Map<string, FileHandle>()
+
+async function getHandle(filePath: string): Promise<FileHandle> {
+  let handle = handleCache.get(filePath)
+  if (!handle) {
+    handle = await open(filePath, 'r')
+    handleCache.set(filePath, handle)
+  }
+  return handle
+}
+
+// 释放一个文件在主进程的全部缓存资源（句柄 + 行索引）。
+// 关闭标签页时应调用，否则大文件的行索引（8 字节/行）会一直常驻内存。
+export async function releaseFile(filePath: string): Promise<void> {
+  const handle = handleCache.get(filePath)
+  if (handle) {
+    handleCache.delete(filePath)
+    await handle.close().catch(() => {})
+  }
+  invalidateIndex(filePath)
 }
 
 export async function openFile(
@@ -79,7 +95,7 @@ export async function readPage(
   const startLine = pageIndex * pageSize
   const endLine = Math.min((pageIndex + 1) * pageSize, index.totalLines)
   const byteOffset = getLineOffset(filePath, startLine)
-  const nextByteOffset = endLine < index.totalLines ? getLineOffset(filePath, endLine) : BigInt(index.fileSize)
+  const nextByteOffset = endLine < index.totalLines ? getLineOffset(filePath, endLine) : index.fileSize
 
   if (byteOffset === undefined || nextByteOffset === undefined) {
     throw new Error(`Invalid byte offset for page ${pageIndex}`)
@@ -104,7 +120,7 @@ export async function readLines(
 
   const endLine = Math.min(startLine + count, index.totalLines)
   const byteOffset = getLineOffset(filePath, startLine)
-  const nextByteOffset = endLine < index.totalLines ? getLineOffset(filePath, endLine) : BigInt(index.fileSize)
+  const nextByteOffset = endLine < index.totalLines ? getLineOffset(filePath, endLine) : index.fileSize
 
   if (byteOffset === undefined || nextByteOffset === undefined) {
     throw new Error(`Invalid byte offset for lines ${startLine}-${endLine - 1}`)
@@ -125,22 +141,31 @@ export async function getLineCount(filePath: string): Promise<number> {
 
 async function readLinesBetweenBytes(
   filePath: string,
-  startByte: bigint,
-  endByte: bigint,
+  startByte: number,
+  endByte: number,
   encoding: string
 ): Promise<string[]> {
-  const size = Number(endByte - startByte)
+  const size = endByte - startByte
   if (size <= 0) return []
 
   const buffer = Buffer.alloc(size)
-  const fileHandle = await open(filePath, 'r')
+  const fileHandle = await getHandle(filePath)
+  let bytesRead = 0
   try {
-    await fileHandle.read(buffer, 0, size, Number(startByte))
-  } finally {
-    await fileHandle.close()
+    ;({ bytesRead } = await fileHandle.read(buffer, 0, size, startByte))
+  } catch (err) {
+    // 句柄可能因文件轮转/删除失效：丢弃缓存，让下次读取重新打开
+    handleCache.delete(filePath)
+    await fileHandle.close().catch(() => {})
+    throw err
+  }
+  if (bytesRead < size) {
+    // 文件可能在缓存句柄打开后被截断：丢弃缓存句柄，避免后续读到脏数据
+    handleCache.delete(filePath)
+    void fileHandle.close().catch(() => {})
   }
 
-  const content = decodeBuffer(buffer, encoding)
+  const content = decodeBuffer(buffer.subarray(0, bytesRead), encoding)
 
   // Split into lines, dropping a trailing empty entry produced by a final newline
   const lines = content.split(/\r?\n/)

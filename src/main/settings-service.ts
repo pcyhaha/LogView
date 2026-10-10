@@ -19,6 +19,7 @@ const store = new Store({ name: 'logview-settings', cwd: resolvePortableCwd() })
 const DEFAULT_SETTINGS: AppSettings = {
   pageSize: 1000,
   theme: 'light',
+  wordWrap: false,
   coloringRules: [],
   recentFiles: []
 }

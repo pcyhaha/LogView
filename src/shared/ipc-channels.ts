@@ -6,6 +6,7 @@ export const IPC_CHANNELS = {
   GET_LINE_COUNT: 'get-line-count',
   DETECT_ENCODING: 'detect-encoding',
   SET_ENCODING: 'set-encoding',
+  CLOSE_FILE: 'close-file',
 
   // Tail mode
   START_TAIL: 'start-tail',

@@ -24,6 +24,9 @@ export function VirtualList<T>({
   const containerRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
   const [height, setHeight] = useState(0)
+  // rAF 合并滚动事件：每个 scroll 事件直接 setState 会连续触发重渲染
+  const scrollTopRef = useRef(0)
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
     const el = containerRef.current
@@ -35,8 +38,20 @@ export function VirtualList<T>({
     return () => ro.disconnect()
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
   const onScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop)
+    scrollTopRef.current = e.currentTarget.scrollTop
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        setScrollTop(scrollTopRef.current)
+      })
+    }
   }, [])
 
   const totalHeight = items.length * itemHeight

@@ -45,7 +45,9 @@ export function EditorToolbar({
   const setEncoding = useAppStore((s) => s.setEncoding)
   const toggleTail = useAppStore((s) => s.toggleTail)
   const setPageSize = useAppStore((s) => s.setPageSize)
+  const toggleWordWrap = useAppStore((s) => s.toggleWordWrap)
   const pageSizeSetting = useAppStore((s) => s.settings.pageSize)
+  const wordWrap = useAppStore((s) => s.settings.wordWrap ?? false)
   const bookmarkCount = useAppStore((s) => (s.bookmarks[tab.id] ?? []).length)
 
   const view = tab.view
@@ -115,6 +117,13 @@ export function EditorToolbar({
         />
         行
       </label>
+      <button
+        className={wordWrap ? 'active' : ''}
+        onClick={toggleWordWrap}
+        title="自动换行（长行折行显示）"
+      >
+        自动换行
+      </button>
 
       <div className="spacer" />
 

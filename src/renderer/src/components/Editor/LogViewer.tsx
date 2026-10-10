@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Editor, { OnMount, Monaco } from '@monaco-editor/react'
 import type { editor as MonacoEditor } from 'monaco-editor'
 import { useAppStore, SCROLL_TO_BOTTOM, Tab } from '@renderer/stores/app-store'
@@ -34,7 +34,11 @@ export function LogViewer({ tab }: LogViewerProps) {
   const monacoRef = useRef<Monaco | null>(null)
   const decorationsRef = useRef<string[]>([])
   const startLineRef = useRef(tab.view.startLine)
+  // 上一次写入 Monaco 的内容/起始行，用于跳过冗余的 setValue（全量重解析）
+  const lastContentRef = useRef<string | null>(null)
+  const lastStartLineRef = useRef<number | null>(null)
   const theme = useAppStore((s) => s.settings.theme)
+  const wordWrap = useAppStore((s) => s.settings.wordWrap ?? false)
   const coloringRules = useAppStore((s) => s.settings.coloringRules)
   const bookmarks = useAppStore((s) => s.bookmarks[tab.id])
   const setCursorLine = useAppStore((s) => s.setCursorLine)
@@ -42,7 +46,8 @@ export function LogViewer({ tab }: LogViewerProps) {
   // editor is actually mounted, otherwise the first page is never written.
   const [editorReady, setEditorReady] = useState(false)
 
-  const content = tab.view.lines.join('\n')
+  // 只有页面数据变化时才重新拼接，避免任意重渲染都做一次千行字符串拼接
+  const content = useMemo(() => tab.view.lines.join('\n'), [tab.view.lines])
   const startLine = tab.view.startLine
   const tabId = tab.id
   startLineRef.current = startLine
@@ -152,32 +157,33 @@ export function LogViewer({ tab }: LogViewerProps) {
     }
   }
 
-  // Update document content and line-number mapping when the page changes
-  // or once the editor has finished mounting.
+  // 更新文档内容、行号映射并应用装饰。内容与装饰合并为单个 effect：
+  // 翻页时 search matches 与 content 同时变化，原先两个 effect 会把
+  // applyDecorations（含逐行染色正则）连续执行两遍。
   useEffect(() => {
     if (!editorReady) return
     const editor = editorRef.current
     const monaco = monacoRef.current
     if (!editor || !monaco) return
-    const model = editor.getModel()
-    if (model) {
-      model.setValue(content)
-    } else {
-      editor.setModel(monaco.editor.createModel(content, 'plaintext'))
-    }
-    editor.updateOptions({
-      lineNumbers: (n: number) => String(startLine + n)
-    })
-    applyDecorations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, startLine, tabId, editorReady])
 
-  // Re-apply decorations whenever anything that affects them changes.
-  useEffect(() => {
+    if (lastContentRef.current !== content || lastStartLineRef.current !== startLine) {
+      lastContentRef.current = content
+      lastStartLineRef.current = startLine
+      const model = editor.getModel()
+      if (model) {
+        model.setValue(content)
+      } else {
+        editor.setModel(monaco.editor.createModel(content, 'plaintext'))
+      }
+      editor.updateOptions({
+        lineNumbers: (n: number) => String(startLine + n)
+      })
+    }
+
     ensureColoringStyle(coloringRules)
     applyDecorations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab.search?.matches, tab.search?.activeIndex, content, coloringRules, bookmarks])
+  }, [content, startLine, editorReady, tab.search?.matches, tab.search?.activeIndex, coloringRules, bookmarks])
 
   // Reveal the requested line (goto line / search jump / tail follow).
   useEffect(() => {
@@ -191,6 +197,11 @@ export function LogViewer({ tab }: LogViewerProps) {
       monacoRef.current.editor.setTheme(theme === 'light' ? 'vs' : 'vs-dark')
     }
   }, [theme])
+
+  // 自动换行开关
+  useEffect(() => {
+    editorRef.current?.updateOptions({ wordWrap: wordWrap ? 'on' : 'off' })
+  }, [wordWrap])
 
   return (
     <Editor
@@ -210,7 +221,7 @@ export function LogViewer({ tab }: LogViewerProps) {
         renderLineHighlight: 'none',
         minimap: { enabled: false },
         automaticLayout: true,
-        wordWrap: 'off',
+        wordWrap: wordWrap ? 'on' : 'off',
         smoothScrolling: true,
         cursorBlinking: 'solid',
         contextmenu: false,

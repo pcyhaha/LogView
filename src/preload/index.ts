@@ -8,6 +8,7 @@ const api: Api = {
   readLines: (data) => ipcRenderer.invoke(IPC_CHANNELS.READ_LINES, data),
   getLineCount: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.GET_LINE_COUNT, filePath),
   detectEncoding: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.DETECT_ENCODING, filePath),
+  closeFile: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.CLOSE_FILE, filePath),
 
   startTail: (data: { filePath: string; encoding: string }) =>
     ipcRenderer.invoke(IPC_CHANNELS.START_TAIL, data),

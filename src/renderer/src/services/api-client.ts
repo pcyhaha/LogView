@@ -17,6 +17,7 @@ export const apiClient = {
   getLineCount: (filePath: string) => w.api.getLineCount(filePath),
 
   detectEncoding: (filePath: string) => w.api.detectEncoding(filePath),
+  closeFile: (filePath: string) => w.api.closeFile(filePath),
 
   startTail: (data: { filePath: string; encoding: string }) => w.api.startTail(data),
 

@@ -73,6 +73,7 @@ interface AppState {
   jumpToSearchResult: (id: string, index: number) => Promise<void>
   updateSettings: (partial: Partial<AppSettings>) => Promise<void>
   setPageSize: (id: string, size: number) => Promise<void>
+  toggleWordWrap: () => void
 
   setCursorLine: (id: string, line: number) => void
   toggleBookmark: (id: string, line?: number) => void
@@ -108,11 +109,68 @@ function pageSize(settings: AppSettings): number {
   return settings.pageSize || 1000
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+// ---- Tail 批量刷新 ----
+// 主进程每个文件变更 tick 都会推送新行；逐 tick 合并意味着整页数组复制
+// + Monaco 全量重解析 + 滚动，高频写入时是持续的性能负担。这里按时间
+// 窗口聚合后一次性刷新。
+interface PendingTail {
+  lines: string[]
+  totalLines: number
+  timer: ReturnType<typeof setTimeout> | null
+}
+const pendingTails = new Map<string, PendingTail>()
+const TAIL_FLUSH_INTERVAL = 150
+
+export const useAppStore = create<AppState>((set, get) => {
+  const flushTail = (tabId: string): void => {
+    const pending = pendingTails.get(tabId)
+    if (!pending) return
+    pendingTails.delete(tabId)
+
+    const state = get()
+    const current = state.tabs[tabId]
+    if (!current || !current.isTailing) return
+    const size = pageSize(state.settings)
+
+    // 写入速率超过页面容量时只保留最新的一页
+    let newLines = pending.lines
+    if (newLines.length > size) {
+      newLines = newLines.slice(newLines.length - size)
+    }
+    let lines = current.view.lines.concat(newLines)
+    let startLine = current.view.startLine
+    if (lines.length > size) {
+      const overflow = lines.length - size
+      lines = lines.slice(overflow)
+      startLine = startLine + overflow
+    }
+    const totalLines = Math.max(current.totalLines, pending.totalLines)
+
+    set((s) => ({
+      tabs: {
+        ...s.tabs,
+        [tabId]: {
+          ...s.tabs[tabId],
+          totalLines,
+          view: {
+            ...s.tabs[tabId].view,
+            lines,
+            startLine,
+            endLine: startLine + lines.length,
+            totalPages: Math.max(1, Math.ceil(totalLines / size))
+          },
+          pendingScrollLine: SCROLL_TO_BOTTOM,
+          pendingScrollToken: s.tabs[tabId].pendingScrollToken + 1
+        }
+      }
+    }))
+  }
+
+  return {
   tabs: {},
   tabOrder: [],
   activeTabId: null,
-  settings: { pageSize: 1000, theme: 'light', coloringRules: [], recentFiles: [] },
+  settings: { pageSize: 1000, theme: 'light', wordWrap: false, coloringRules: [], recentFiles: [] },
   isInitialized: false,
   bookmarks: {},
   cursorLines: {},
@@ -120,7 +178,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   init: async () => {
     try {
       const settings = await apiClient.getSettings()
-      set({ settings, isInitialized: true })
+      // wordWrap 是后加的字段：旧持久化数据没有该 key，这里补默认值
+      set({ settings: { ...settings, wordWrap: settings.wordWrap ?? false }, isInitialized: true })
     } catch {
       set({ isInitialized: true })
     }
@@ -184,6 +243,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     const tab = state.tabs[id]
     if (tab?.isTailing) {
       apiClient.stopTail(tab.filePath).catch(() => {})
+    }
+    // 清掉未 flush 的 tail 缓冲，避免定时器在关 tab 后触发
+    const pending = pendingTails.get(id)
+    if (pending?.timer) clearTimeout(pending.timer)
+    pendingTails.delete(id)
+    // 释放主进程为该文件缓存的行索引与文件句柄，
+    // 否则大文件索引（8 字节/行）在整个会话期间常驻内存
+    if (tab) {
+      apiClient.closeFile(tab.filePath).catch(() => {})
     }
     const order = state.tabOrder.filter((t) => t !== id)
     const tabs = { ...state.tabs }
@@ -592,42 +660,29 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().updateSettings({ theme: next })
   },
 
+  toggleWordWrap: () => {
+    const next = !(get().settings.wordWrap ?? false)
+    get().updateSettings({ wordWrap: next })
+  },
+
   handleTailNewLines: (data) => {
     const state = get()
     const tab = Object.values(state.tabs).find((t) => t.filePath === data.filePath)
     if (!tab || !tab.isTailing) return
-    const size = pageSize(state.settings)
 
-    set((s) => {
-      const current = s.tabs[tab.id]
-      let lines = [...current.view.lines, ...data.newLines]
-      let startLine = current.view.startLine
-      if (lines.length > size) {
-        const overflow = lines.length - size
-        lines = lines.slice(overflow)
-        startLine = current.view.startLine + overflow
-      }
-      return {
-        tabs: {
-          ...s.tabs,
-          [tab.id]: {
-            ...current,
-            totalLines: data.totalLines,
-            view: {
-              ...current.view,
-              lines,
-              startLine,
-              endLine: startLine + lines.length,
-              totalPages: Math.max(1, Math.ceil(data.totalLines / size))
-            },
-            pendingScrollLine: SCROLL_TO_BOTTOM,
-            pendingScrollToken: current.pendingScrollToken + 1
-          }
-        }
-        ,
-        settings: s.settings
-      }
-    })
+    // 先攒入缓冲，由 flushTail 按时间窗口批量合并进视图
+    const pending = pendingTails.get(tab.id) ?? { lines: [], totalLines: 0, timer: null }
+    pendingTails.set(tab.id, pending)
+    for (const line of data.newLines) {
+      pending.lines.push(line)
+    }
+    pending.totalLines = Math.max(pending.totalLines, data.totalLines)
+    if (pending.timer === null) {
+      const tabId = tab.id
+      pending.timer = setTimeout(() => {
+        flushTail(tabId)
+      }, TAIL_FLUSH_INTERVAL)
+    }
   },
 
   handleIndexingProgress: (data) => {
@@ -656,4 +711,5 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     })
   }
-}))
+  }
+})

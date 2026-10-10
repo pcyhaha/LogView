@@ -1,7 +1,7 @@
 import { ipcMain, IpcMainInvokeEvent, dialog, app, BrowserWindow } from 'electron'
 import { writeFile } from 'fs/promises'
 import { IPC_CHANNELS } from '../shared/ipc-channels'
-import { openFile, readPage, readLines, getLineCount } from './file-service'
+import { openFile, readPage, readLines, getLineCount, releaseFile } from './file-service'
 import { buildLineIndex } from './line-indexer'
 import { detectEncoding } from './encoding-service'
 import { grepFile, filterFile } from './search-service'
@@ -58,6 +58,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow | null): void {
 
   ipcMain.handle(IPC_CHANNELS.DETECT_ENCODING, async (_event, filePath: string) => {
     return await detectEncoding(filePath)
+  })
+
+  // 关闭标签页时释放该文件在主进程的缓存（行索引 + 文件句柄），
+  // 避免大文件索引（8 字节/行）在会话内无限累积。
+  ipcMain.handle(IPC_CHANNELS.CLOSE_FILE, async (_event, filePath: string) => {
+    try {
+      await stopTail(filePath)
+    } catch {
+      /* tail 可能本就未启动 */
+    }
+    await releaseFile(filePath)
+    return { success: true }
   })
 
   // ---- Tail mode ----

@@ -36,6 +36,42 @@ export function buildMatcher(
   }
 }
 
+// 只需要判断"是否命中"的场景（如过滤模式）使用首命中即返回的测试器，
+// 避免为拿布尔值而收集全部匹配位置。
+export function buildTestMatcher(opts: GrepOptions): (text: string) => boolean {
+  if (opts.regex) {
+    let regex: RegExp
+    try {
+      regex = new RegExp(opts.pattern, opts.caseSensitive ? '' : 'i')
+    } catch {
+      return literalTest(opts.pattern, opts.caseSensitive, opts.wholeWord)
+    }
+    return (text: string) => regex.test(text)
+  }
+  return literalTest(opts.pattern, opts.caseSensitive, opts.wholeWord)
+}
+
+function literalTest(
+  pattern: string,
+  caseSensitive: boolean,
+  wholeWord: boolean
+): (text: string) => boolean {
+  if (wholeWord) {
+    try {
+      const regex = new RegExp(
+        `\\b${escapeRegExp(pattern)}\\b`,
+        caseSensitive ? '' : 'i'
+      )
+      return (text: string) => regex.test(text)
+    } catch {
+      return () => false
+    }
+  }
+  const needle = caseSensitive ? pattern : pattern.toLowerCase()
+  return (text: string) =>
+    (caseSensitive ? text : text.toLowerCase()).indexOf(needle) !== -1
+}
+
 export function literalMatcher(
   pattern: string,
   caseSensitive: boolean,

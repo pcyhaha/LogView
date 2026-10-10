@@ -104,6 +104,7 @@ export interface FilterResult {
 export interface AppSettings {
   pageSize: number
   theme: 'dark' | 'light'
+  wordWrap: boolean
   coloringRules: ColoringRule[]
   recentFiles: string[]
 }

@@ -46,6 +46,7 @@ export interface Api {
 
   getLineCount: (filePath: string) => Promise<number>
   detectEncoding: (filePath: string) => Promise<{ encoding: string; confidence: number }>
+  closeFile: (filePath: string) => Promise<{ success: boolean }>
 
   startTail: (data: { filePath: string; encoding: string }) => Promise<{ success: boolean }>
   stopTail: (filePath: string) => Promise<{ success: boolean }>

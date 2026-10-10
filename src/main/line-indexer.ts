@@ -5,18 +5,47 @@ import { stat } from 'fs/promises'
 // quickly while indexing continues in the background. It is NOT a limit on how
 // many line offsets we record — every line's offset must be stored, otherwise
 // getLineOffset falls back to fileSize for lines past this count and readPage
-// would allocate a huge buffer (freeze). See the note in the data handler.
+// would allocate a huge buffer (freeze).
 const INITIAL_INDEX_LINES = 100000
+const INITIAL_OFFSET_CAPACITY = 1 << 16
 
 interface LineIndex {
   filePath: string
-  offsets: BigUint64Array
+  offsets: Float64Array
   totalLines: number
   fileSize: number
   isComplete: boolean
 }
 
 const indexCache = new Map<string, LineIndex>()
+
+// 可增长的行偏移数组。
+// 之前用普通 JS 数组收集、结束时逐行 BigInt() 转成 BigUint64Array：
+// - BigInt 逐行分配很慢，亿级行时是最大热点；
+// - 转换期间新旧两份数据并存，内存峰值翻倍。
+// 文件偏移 < 2^53，Float64Array 存 Number 精度完全足够，且容量倍增摊还。
+class OffsetBuilder {
+  private arr = new Float64Array(INITIAL_OFFSET_CAPACITY)
+  private len = 0
+
+  push(value: number): void {
+    if (this.len === this.arr.length) {
+      const next = new Float64Array(this.arr.length * 2)
+      next.set(this.arr)
+      this.arr = next
+    }
+    this.arr[this.len++] = value
+  }
+
+  get length(): number {
+    return this.len
+  }
+
+  // 当前已记录部分的视图（共享底层内存，不复制）
+  snapshot(): Float64Array {
+    return this.arr.subarray(0, this.len)
+  }
+}
 
 export async function buildLineIndex(
   filePath: string,
@@ -29,9 +58,10 @@ export async function buildLineIndex(
   const fileSize = fileStat.size
 
   // First pass: count lines and record absolute byte offsets (start of each
-  // line) up to INITIAL_INDEX_LINES. Offsets MUST be absolute file positions,
-  // otherwise readPage reads the wrong byte range and only a few lines show.
-  const initialOffsets: number[] = [0]
+  // line). Offsets MUST be absolute file positions, otherwise readPage reads
+  // the wrong byte range and only a few lines show.
+  const offsets = new OffsetBuilder()
+  offsets.push(0)
   let lineCount = 0
   let buf = Buffer.alloc(0)
   let absolutePos = 0 // absolute file byte offset of buf[0]
@@ -54,14 +84,8 @@ export async function buildLineIndex(
         lineCount++
         const absoluteOffset = absolutePos + nlPos + 1 // start of next line
 
-        // Record EVERY line's offset. Previously this was gated by
-        // `lineCount <= INITIAL_INDEX_LINES`, which truncated the offset array
-        // at 100k lines for large files. The line count (totalLines) still grew
-        // to the full size, so getLineOffset returned fileSize for any line past
-        // 100k, and readPage then computed a byte range spanning from line 100k
-        // to EOF — allocating a multi-GB buffer and freezing the app while
-        // paging forward. Store all offsets unconditionally.
-        initialOffsets.push(absoluteOffset)
+        // Record EVERY line's offset (see note above the threshold).
+        offsets.push(absoluteOffset)
 
         // Skip past the newline; the remaining view starts at absoluteOffset
         buf = buf.subarray(nlPos + 1)
@@ -70,7 +94,7 @@ export async function buildLineIndex(
 
       if (!initialResolved && lineCount >= INITIAL_INDEX_LINES) {
         initialResolved = true
-        const index = createIndex(filePath, initialOffsets, lineCount, fileSize, false)
+        const index = createIndex(filePath, offsets.snapshot(), lineCount, fileSize, false)
         indexCache.set(filePath, index)
         onProgress?.(lineCount, undefined)
         resolve(index)
@@ -88,8 +112,7 @@ export async function buildLineIndex(
         lineCount++
       }
 
-      const offsets = initialOffsets
-      const index = createIndex(filePath, offsets, lineCount, fileSize, true)
+      const index = createIndex(filePath, offsets.snapshot(), lineCount, fileSize, true)
       indexCache.set(filePath, index)
       // Signal completion: pass the final total as `total` so the renderer
       // can mark indexing as finished.
@@ -106,47 +129,29 @@ export async function buildLineIndex(
 
 function createIndex(
   filePath: string,
-  offsets: number[],
+  offsets: Float64Array,
   totalLines: number,
   fileSize: number,
   isComplete: boolean
 ): LineIndex {
-  const arr = new BigUint64Array(offsets.length)
-  for (let i = 0; i < offsets.length; i++) {
-    arr[i] = BigInt(offsets[i])
-  }
-  return { filePath, offsets: arr, totalLines, fileSize, isComplete }
+  return { filePath, offsets, totalLines, fileSize, isComplete }
 }
 
 export function getLineIndex(filePath: string): LineIndex | undefined {
   return indexCache.get(filePath)
 }
 
-export function getLineOffset(filePath: string, lineNumber: number): bigint | undefined {
+export function getLineOffset(filePath: string, lineNumber: number): number | undefined {
   const index = indexCache.get(filePath)
   if (!index) return undefined
   // lineNumber is 0-based (0 => first line start).
   if (lineNumber < 0) return undefined
   // Reading up to / past the last line maps to the end of the file.
-  if (lineNumber >= index.totalLines) return BigInt(index.fileSize)
-  if (lineNumber >= index.offsets.length) return BigInt(index.fileSize)
+  if (lineNumber >= index.totalLines) return index.fileSize
+  if (lineNumber >= index.offsets.length) return index.fileSize
   return index.offsets[lineNumber]
 }
 
 export function invalidateIndex(filePath: string): void {
   indexCache.delete(filePath)
-}
-
-export function appendOffsets(filePath: string, newOffsets: number[]): void {
-  const index = indexCache.get(filePath)
-  if (!index) return
-
-  const oldLen = index.offsets.length
-  const newArr = new BigUint64Array(oldLen + newOffsets.length)
-  newArr.set(index.offsets)
-  for (let i = 0; i < newOffsets.length; i++) {
-    newArr[oldLen + i] = BigInt(newOffsets[i])
-  }
-  index.offsets = newArr
-  index.totalLines += newOffsets.length
 }
