@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
 import { apiClient } from '@renderer/services/api-client'
+import { useT } from '@renderer/i18n'
 import { MenuBar } from '../MenuBar/MenuBar'
 import { TabBar } from '../TabBar/TabBar'
 import { EditorToolbar } from '../Editor/EditorToolbar'
@@ -26,6 +27,7 @@ export function AppLayout() {
   const toggleBookmark = useAppStore((s) => s.toggleBookmark)
   const clearSearch = useAppStore((s) => s.clearSearch)
   const theme = useAppStore((s) => s.settings.theme)
+  const t = useT()
 
   // Closing the search panel must release both the editor highlight and the
   // in-memory matches cache (up to 20000 full-line strings), otherwise they
@@ -189,7 +191,7 @@ export function AppLayout() {
             <div className="editor-container">
               {activeTab.view.isLoading ? (
                 <div className="editor-placeholder">
-                  <p>加载中…</p>
+                  <p>{t('app.loading')}</p>
                 </div>
               ) : activeTab.view.error ? (
                 <div className="editor-placeholder">
@@ -218,8 +220,8 @@ export function AppLayout() {
           <div className="editor-container">
             <div className="editor-placeholder">
               <h1>LogView</h1>
-              <p>专业日志分析工具</p>
-              <p>按 Ctrl+O 打开日志文件</p>
+              <p>{t('app.tagline')}</p>
+              <p>{t('app.openHint')}</p>
             </div>
           </div>
         </div>

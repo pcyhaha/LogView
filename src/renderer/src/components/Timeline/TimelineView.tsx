@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
 import { apiClient } from '@renderer/services/api-client'
+import { useT } from '@renderer/i18n'
 import type { Tab } from '@renderer/stores/app-store'
 import type { TimelineResult } from '@shared/types'
 
@@ -10,6 +11,7 @@ const PAD = 8
 
 export function TimelineView({ tab, onClose }: { tab: Tab; onClose: () => void }) {
   const goToLine = useAppStore((s) => s.goToLine)
+  const t = useT()
   const [result, setResult] = useState<TimelineResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,27 +44,30 @@ export function TimelineView({ tab, onClose }: { tab: Tab; onClose: () => void }
     <div className="search-panel">
       <div className="search-header">
         <div className="search-input-row">
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>时间线</span>
-          <button className="button" onClick={load} title="重建">
-            刷新
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{t('timeline.title')}</span>
+          <button className="button" onClick={load} title={t('tooltip.rebuild')}>
+            {t('timeline.refresh')}
           </button>
-          <button className="button" onClick={onClose} title="关闭">
+          <button className="button" onClick={onClose} title={t('common.close')}>
             ×
           </button>
         </div>
         <div className="search-summary">
           {result && !loading
-            ? `${result.totalLines.toLocaleString()} 行中 ${result.parsedLines.toLocaleString()} 行已解析时间戳`
-            : '正在扫描文件…'}
+            ? t('timeline.summary', {
+                total: result.totalLines.toLocaleString(),
+                parsed: result.parsedLines.toLocaleString()
+              })
+            : t('timeline.scanning')}
         </div>
       </div>
 
-      {loading && <div className="search-summary">正在构建时间线…</div>}
+      {loading && <div className="search-summary">{t('timeline.building')}</div>}
       {error && <div className="search-error">{error}</div>}
 
       {!loading && result && result.buckets.length === 0 && (
         <div className="hint" style={{ padding: 10, color: 'var(--text-muted)' }}>
-          该文件中未发现可识别的时间戳。
+          {t('timeline.noTimestamps')}
         </div>
       )}
 
@@ -90,7 +95,7 @@ export function TimelineView({ tab, onClose }: { tab: Tab; onClose: () => void }
                   onClick={() => b.sampleLineNumber > 0 && goToLine(tab.id, b.sampleLineNumber)}
                 >
                   <title>
-                    {`${b.count} 行 @ ${fmt(b.startMs)}`}
+                    {t('timeline.bucketTip', { count: b.count, time: fmt(b.startMs) })}
                   </title>
                 </rect>
               )

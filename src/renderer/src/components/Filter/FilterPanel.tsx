@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
 import { apiClient } from '@renderer/services/api-client'
+import { useT } from '@renderer/i18n'
 import type { Tab } from '@renderer/stores/app-store'
 import type { GrepOptions, FilterLine, FilterMode } from '@shared/types'
 import { VirtualList } from '../Common/VirtualList'
@@ -14,6 +15,7 @@ const ROW_HEIGHT = 26
 
 export function FilterPanel({ tab, onClose }: FilterPanelProps) {
   const goToLine = useAppStore((s) => s.goToLine)
+  const t = useT()
   const [query, setQuery] = useState('')
   const [mode, setMode] = useState<FilterMode>('include')
   const [options, setOptions] = useState<GrepOptions>({
@@ -86,7 +88,7 @@ export function FilterPanel({ tab, onClose }: FilterPanelProps) {
         <div className="search-input-row">
           <input
             autoFocus
-            placeholder="过滤关键词（匹配的行保留/隐藏）..."
+            placeholder={t('filter.placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -94,18 +96,18 @@ export function FilterPanel({ tab, onClose }: FilterPanelProps) {
             }}
           />
           <button className="button" onClick={run}>
-            过滤
+            {t('filter.run')}
           </button>
-          <button className="button" onClick={onClose} title="关闭">
+          <button className="button" onClick={onClose} title={t('common.close')}>
             ×
           </button>
         </div>
         <div className="search-options">
           <label className="search-scope">
-            模式：
+            {t('filter.mode')}
             <select value={mode} onChange={(e) => setMode(e.target.value as FilterMode)}>
-              <option value="include">保留匹配行</option>
-              <option value="exclude">隐藏匹配行</option>
+              <option value="include">{t('filter.modeInclude')}</option>
+              <option value="exclude">{t('filter.modeExclude')}</option>
             </select>
           </label>
           <label>
@@ -114,7 +116,7 @@ export function FilterPanel({ tab, onClose }: FilterPanelProps) {
               checked={options.caseSensitive}
               onChange={(e) => setOptions({ ...options, caseSensitive: e.target.checked })}
             />
-            区分大小写
+            {t('search.caseSensitive')}
           </label>
           <label>
             <input
@@ -122,7 +124,7 @@ export function FilterPanel({ tab, onClose }: FilterPanelProps) {
               checked={options.wholeWord}
               onChange={(e) => setOptions({ ...options, wholeWord: e.target.checked })}
             />
-            整词
+            {t('search.wholeWord')}
           </label>
           <label>
             <input
@@ -130,20 +132,21 @@ export function FilterPanel({ tab, onClose }: FilterPanelProps) {
               checked={options.regex}
               onChange={(e) => setOptions({ ...options, regex: e.target.checked })}
             />
-            正则
+            {t('search.regex')}
           </label>
         </div>
       </div>
 
-      {loading && <div className="search-summary">正在过滤…</div>}
+      {loading && <div className="search-summary">{t('filter.filtering')}</div>}
       {error && <div className="search-error">{error}</div>}
       {!loading && !error && executed && (
         <div className="search-summary">
           <span>
-            {mode === 'include' ? '匹配' : '剩余'} {totalCount.toLocaleString()} 行
-            {truncated ? '（已达上限，结果被截断）' : ''}
+            {mode === 'include' ? t('filter.resultInclude') : t('filter.resultExclude')}{' '}
+            {t('filter.lineCount', { count: totalCount.toLocaleString() })}
+            {truncated ? t('filter.truncated') : ''}
           </span>
-          <span className="hint">点击行跳转到原文</span>
+          <span className="hint">{t('filter.clickHint')}</span>
         </div>
       )}
 

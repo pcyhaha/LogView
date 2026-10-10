@@ -184,11 +184,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow | null): void {
 
   // ---- Open file dialog (used by the in-renderer custom menu) ----
   ipcMain.handle(IPC_CHANNELS.OPEN_DIALOG, async () => {
+    // 过滤器名称跟随界面语言设置
+    const isEn = getSettings().language === 'en'
     const result = await dialog.showOpenDialog(mainWindowRef!, {
       properties: ['openFile', 'multiSelections'],
       filters: [
-        { name: '日志文件', extensions: ['log', 'txt', 'out', 'err', 'gz'] },
-        { name: '全部文件', extensions: ['*'] }
+        {
+          name: isEn ? 'Log Files' : '日志文件',
+          extensions: ['log', 'txt', 'out', 'err', 'gz']
+        },
+        { name: isEn ? 'All Files' : '全部文件', extensions: ['*'] }
       ]
     })
     if (result.canceled) return []

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
+import { useT } from '@renderer/i18n'
 
 export function TabBar() {
   const tabOrder = useAppStore((s) => s.tabOrder)
@@ -7,6 +8,7 @@ export function TabBar() {
   const tabs = useAppStore((s) => s.tabs)
   const setActiveTab = useAppStore((s) => s.setActiveTab)
   const closeTab = useAppStore((s) => s.closeTab)
+  const t = useT()
 
   if (tabOrder.length === 0) return null
 
@@ -30,7 +32,7 @@ export function TabBar() {
                 e.stopPropagation()
                 closeTab(id)
               }}
-              title="关闭"
+              title={t('common.close')}
             >
               ×
             </button>

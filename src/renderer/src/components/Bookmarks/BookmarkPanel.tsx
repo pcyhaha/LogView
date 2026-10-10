@@ -1,5 +1,6 @@
 import React from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
+import { useT } from '@renderer/i18n'
 import type { Tab } from '@renderer/stores/app-store'
 
 export function BookmarkPanel({ tab, onClose }: { tab: Tab; onClose: () => void }) {
@@ -8,33 +9,34 @@ export function BookmarkPanel({ tab, onClose }: { tab: Tab; onClose: () => void 
   const goToLine = useAppStore((s) => s.goToLine)
   const toggleBookmark = useAppStore((s) => s.toggleBookmark)
   const removeBookmark = useAppStore((s) => s.removeBookmark)
+  const t = useT()
 
   return (
     <div className="search-panel">
       <div className="search-header">
         <div className="search-input-row">
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>书签</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{t('bookmarks.title')}</span>
           <button
             className="button"
             onClick={() => toggleBookmark(tab.id)}
-            title="在当前行添加书签 (Ctrl+F2)"
+            title={t('tooltip.addBookmark')}
           >
-            + 添加
+            {t('bookmarks.add')}
           </button>
-          <button className="button" onClick={onClose} title="关闭">
+          <button className="button" onClick={onClose} title={t('common.close')}>
             ×
           </button>
         </div>
         <div className="search-summary">
-          {bookmarks.length} 个书签
-          {cursorLine ? ` · 光标在第 ${cursorLine.toLocaleString()} 行` : ''}
+          {t('bookmarks.count', { count: bookmarks.length })}
+          {cursorLine ? ` · ${t('bookmarks.cursorAt', { line: cursorLine.toLocaleString() })}` : ''}
         </div>
       </div>
 
       <div className="search-results">
         {bookmarks.length === 0 && (
           <div className="hint" style={{ padding: 10, color: 'var(--text-muted)' }}>
-            暂无书签。将光标置于某行后按 Ctrl+F2（或点“+ 添加”）。
+            {t('bookmarks.empty')}
           </div>
         )}
         {bookmarks.map((bm) => (
@@ -51,7 +53,7 @@ export function BookmarkPanel({ tab, onClose }: { tab: Tab; onClose: () => void 
                 e.stopPropagation()
                 removeBookmark(tab.id, bm.id)
               }}
-              title="移除"
+              title={t('tooltip.removeBookmark')}
             >
               ×
             </button>

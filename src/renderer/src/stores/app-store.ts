@@ -74,6 +74,7 @@ interface AppState {
   updateSettings: (partial: Partial<AppSettings>) => Promise<void>
   setPageSize: (id: string, size: number) => Promise<void>
   toggleWordWrap: () => void
+  setLanguage: (lang: 'zh' | 'en') => void
 
   setCursorLine: (id: string, line: number) => void
   toggleBookmark: (id: string, line?: number) => void
@@ -170,7 +171,7 @@ export const useAppStore = create<AppState>((set, get) => {
   tabs: {},
   tabOrder: [],
   activeTabId: null,
-  settings: { pageSize: 1000, theme: 'light', wordWrap: false, coloringRules: [], recentFiles: [] },
+  settings: { pageSize: 1000, theme: 'light', wordWrap: false, language: 'zh', coloringRules: [], recentFiles: [] },
   isInitialized: false,
   bookmarks: {},
   cursorLines: {},
@@ -178,8 +179,15 @@ export const useAppStore = create<AppState>((set, get) => {
   init: async () => {
     try {
       const settings = await apiClient.getSettings()
-      // wordWrap 是后加的字段：旧持久化数据没有该 key，这里补默认值
-      set({ settings: { ...settings, wordWrap: settings.wordWrap ?? false }, isInitialized: true })
+      // wordWrap/language 是后加的字段：旧持久化数据没有该 key，这里补默认值
+      set({
+        settings: {
+          ...settings,
+          wordWrap: settings.wordWrap ?? false,
+          language: settings.language ?? 'zh'
+        },
+        isInitialized: true
+      })
     } catch {
       set({ isInitialized: true })
     }
@@ -663,6 +671,10 @@ export const useAppStore = create<AppState>((set, get) => {
   toggleWordWrap: () => {
     const next = !(get().settings.wordWrap ?? false)
     get().updateSettings({ wordWrap: next })
+  },
+
+  setLanguage: (lang) => {
+    get().updateSettings({ language: lang })
   },
 
   handleTailNewLines: (data) => {

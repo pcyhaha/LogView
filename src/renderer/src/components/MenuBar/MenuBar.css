@@ -108,6 +108,16 @@
   cursor: default !important;
 }
 
+/* 当前语言项：主题色文字 + 前缀圆点标识 */
+.menu-active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+.menu-active::before {
+  content: '•';
+  margin-right: 6px;
+}
+
 .menu-recent {
   max-width: 360px;
   overflow: hidden;

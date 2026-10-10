@@ -105,6 +105,7 @@ export interface AppSettings {
   pageSize: number
   theme: 'dark' | 'light'
   wordWrap: boolean
+  language: 'zh' | 'en'
   coloringRules: ColoringRule[]
   recentFiles: string[]
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
+import { useT } from '@renderer/i18n'
 import type { Tab } from '@renderer/stores/app-store'
 
 interface GotoLineDialogProps {
@@ -9,6 +10,7 @@ interface GotoLineDialogProps {
 
 export function GotoLineDialog({ tab, onClose }: GotoLineDialogProps) {
   const goToLine = useAppStore((s) => s.goToLine)
+  const t = useT()
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
 
@@ -20,7 +22,7 @@ export function GotoLineDialog({ tab, onClose }: GotoLineDialogProps) {
   const submit = () => {
     const line = parseInt(value, 10)
     if (isNaN(line) || line < 1 || line > tab.totalLines) {
-      setError(`请输入 1 到 ${tab.totalLines.toLocaleString()} 之间的行号`)
+      setError(t('goto.invalidRange', { max: tab.totalLines.toLocaleString() }))
       return
     }
     goToLine(tab.id, line)
@@ -30,7 +32,7 @@ export function GotoLineDialog({ tab, onClose }: GotoLineDialogProps) {
   return (
     <div className="dialog-overlay" onMouseDown={onClose}>
       <div className="dialog" onMouseDown={(e) => e.stopPropagation()}>
-        <h3>跳转行</h3>
+        <h3>{t('goto.title')}</h3>
         <input
           autoFocus
           type="number"
@@ -46,9 +48,9 @@ export function GotoLineDialog({ tab, onClose }: GotoLineDialogProps) {
         />
         {error && <div className="search-error">{error}</div>}
         <div className="dialog-actions">
-          <button onClick={onClose}>取消</button>
+          <button onClick={onClose}>{t('common.cancel')}</button>
           <button className="primary" onClick={submit}>
-            跳转
+            {t('goto.go')}
           </button>
         </div>
       </div>

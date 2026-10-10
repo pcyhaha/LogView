@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
+import { useT } from '@renderer/i18n'
 import type { Tab } from '@renderer/stores/app-store'
 import type { GrepOptions } from '@shared/types'
 import type { SearchScope } from '@shared/search-matcher'
@@ -15,6 +16,7 @@ const ROW_HEIGHT = 28
 export function SearchPanel({ tab, onClose }: SearchPanelProps) {
   const search = useAppStore((s) => s.search)
   const setSearchScope = useAppStore((s) => s.setSearchScope)
+  const t = useT()
   const [query, setQuery] = useState(tab.search.query)
   const [options, setOptions] = useState<GrepOptions>(tab.search.options)
 
@@ -73,27 +75,27 @@ export function SearchPanel({ tab, onClose }: SearchPanelProps) {
         <div className="search-input-row">
           <input
             autoFocus
-            placeholder="在文件中搜索..."
+            placeholder={t('search.placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
           />
           <button className="button" onClick={submit}>
-            查找
+            {t('search.find')}
           </button>
-          <button className="button" onClick={onClose} title="关闭">
+          <button className="button" onClick={onClose} title={t('common.close')}>
             ×
           </button>
         </div>
         <div className="search-options">
           <label className="search-scope">
-            范围：
+            {t('search.scope')}
             <select
               value={tab.search.scope}
               onChange={(e) => setSearchScope(tab.id, e.target.value as SearchScope)}
             >
-              <option value="page">当前页</option>
-              <option value="file">整个文件</option>
+              <option value="page">{t('search.scopePage')}</option>
+              <option value="file">{t('search.scopeFile')}</option>
             </select>
           </label>
           <label>
@@ -102,7 +104,7 @@ export function SearchPanel({ tab, onClose }: SearchPanelProps) {
               checked={options.caseSensitive}
               onChange={(e) => setOptions({ ...options, caseSensitive: e.target.checked })}
             />
-            区分大小写
+            {t('search.caseSensitive')}
           </label>
           <label>
             <input
@@ -110,7 +112,7 @@ export function SearchPanel({ tab, onClose }: SearchPanelProps) {
               checked={options.wholeWord}
               onChange={(e) => setOptions({ ...options, wholeWord: e.target.checked })}
             />
-            整词
+            {t('search.wholeWord')}
           </label>
           <label>
             <input
@@ -118,25 +120,25 @@ export function SearchPanel({ tab, onClose }: SearchPanelProps) {
               checked={options.regex}
               onChange={(e) => setOptions({ ...options, regex: e.target.checked })}
             />
-            正则
+            {t('search.regex')}
           </label>
         </div>
       </div>
 
-      {tab.search.isSearching && <div className="search-summary">搜索中…</div>}
+      {tab.search.isSearching && <div className="search-summary">{t('search.searching')}</div>}
       {tab.search.error && <div className="search-error">{tab.search.error}</div>}
       {!tab.search.isSearching && !tab.search.error && query && (
         <div className="search-summary">
           <span className="search-nav">
-            <button className="button" onClick={goPrev} disabled={matches.length === 0} title="上一个匹配 (Shift+F3)">
-              ↑ 上一个
+            <button className="button" onClick={goPrev} disabled={matches.length === 0} title={t('tooltip.prevMatch')}>
+              {t('search.prev')}
             </button>
-            <button className="button" onClick={goNext} disabled={matches.length === 0} title="下一个匹配 (F3)">
-              ↓ 下一个
+            <button className="button" onClick={goNext} disabled={matches.length === 0} title={t('tooltip.nextMatch')}>
+              {t('search.next')}
             </button>
           </span>
           <span className="search-count">
-            {matches.length} 个匹配
+            {t('search.matchCount', { count: matches.length })}
             {tab.search.activeIndex >= 0 ? ` · #${tab.search.activeIndex + 1}` : ''}
           </span>
         </div>

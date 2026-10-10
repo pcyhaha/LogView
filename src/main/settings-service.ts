@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   pageSize: 1000,
   theme: 'light',
   wordWrap: false,
+  language: 'zh',
   coloringRules: [],
   recentFiles: []
 }

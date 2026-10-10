@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useAppStore } from '@renderer/stores/app-store'
 import { apiClient } from '@renderer/services/api-client'
+import { useT } from '@renderer/i18n'
 import type { Tab } from '@renderer/stores/app-store'
 
 const ENCODINGS = [
@@ -49,6 +50,7 @@ export function EditorToolbar({
   const pageSizeSetting = useAppStore((s) => s.settings.pageSize)
   const wordWrap = useAppStore((s) => s.settings.wordWrap ?? false)
   const bookmarkCount = useAppStore((s) => (s.bookmarks[tab.id] ?? []).length)
+  const t = useT()
 
   const view = tab.view
   const canPrev = view.currentPage > 0
@@ -75,7 +77,7 @@ export function EditorToolbar({
 
   const handleExport = async () => {
     if (tab.search.matches.length === 0) {
-      window.alert('没有可导出的搜索结果，请先执行搜索。')
+      window.alert(t('toolbar.exportNoResults'))
       return
     }
     const res = await apiClient.exportResults({
@@ -83,26 +85,31 @@ export function EditorToolbar({
       matches: tab.search.matches
     })
     if (res.success) {
-      window.alert(`已导出 ${tab.search.matches.length} 条匹配到 ${res.outputPath}`)
+      window.alert(t('toolbar.exported', { count: tab.search.matches.length, path: res.outputPath }))
     } else if (!res.canceled) {
-      window.alert('导出失败。')
+      window.alert(t('toolbar.exportFailed'))
     }
   }
 
   return (
     <div className="toolbar">
-      <button onClick={() => prevPage(tab.id)} disabled={!canPrev} title="上一页 (PgUp)">
-        ◀ 上一页
+      <button onClick={() => prevPage(tab.id)} disabled={!canPrev} title={t('tooltip.prevPage')}>
+        {t('toolbar.prevPage')}
       </button>
-      <button onClick={() => nextPage(tab.id)} disabled={!canNext} title="下一页 (PgDn)">
-        下一页 ▶
+      <button onClick={() => nextPage(tab.id)} disabled={!canNext} title={t('tooltip.nextPage')}>
+        {t('toolbar.nextPage')}
       </button>
       <span className="page-info">
-        第 {view.currentPage + 1} / {view.totalPages} 页 · 行 {view.startLine + 1}-
-        {displayEnd} / {tab.totalLines.toLocaleString()}
+        {t('toolbar.pageInfo', {
+          page: view.currentPage + 1,
+          totalPages: view.totalPages,
+          start: view.startLine + 1,
+          end: displayEnd,
+          totalLines: tab.totalLines.toLocaleString()
+        })}
       </span>
-      <label className="page-size" title="每页显示行数 (500-2000)">
-        每页
+      <label className="page-size" title={t('tooltip.pageSize')}>
+        {t('toolbar.perPage')}
         <input
           type="number"
           min={500}
@@ -115,19 +122,19 @@ export function EditorToolbar({
             if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
           }}
         />
-        行
+        {t('toolbar.linesUnit')}
       </label>
       <button
         className={wordWrap ? 'active' : ''}
         onClick={toggleWordWrap}
-        title="自动换行（长行折行显示）"
+        title={t('tooltip.wordWrap')}
       >
-        自动换行
+        {t('toolbar.wordWrap')}
       </button>
 
       <div className="spacer" />
 
-      <label title="文件编码">
+      <label title={t('tooltip.encoding')}>
         <select
           value={tab.encoding}
           onChange={(e) => setEncoding(tab.id, e.target.value)}
@@ -147,47 +154,47 @@ export function EditorToolbar({
       <button
         className={tab.isTailing ? 'active' : ''}
         onClick={() => toggleTail(tab.id)}
-        title="实时追踪文件 (tail -f)"
+        title={t('tooltip.tail')}
       >
-        {tab.isTailing ? '● 追踪中' : '追踪'}
+        {tab.isTailing ? t('toolbar.tailing') : t('toolbar.tail')}
       </button>
 
-      <button className={isSearchOpen ? 'active' : ''} onClick={onToggleSearch} title="搜索 (Ctrl+F)">
-        搜索
+      <button className={isSearchOpen ? 'active' : ''} onClick={onToggleSearch} title={t('tooltip.search')}>
+        {t('toolbar.search')}
       </button>
       <button
         className={activePanel === 'filter' ? 'active' : ''}
         onClick={onToggleFilter}
-        title="按关键词过滤（保留/隐藏匹配行）"
+        title={t('tooltip.filter')}
       >
-        过滤
+        {t('toolbar.filter')}
       </button>
       <button
         className={activePanel === 'coloring' ? 'active' : ''}
         onClick={onOpenColoring}
-        title="着色规则"
+        title={t('tooltip.highlight')}
       >
-        高亮
+        {t('toolbar.highlight')}
       </button>
       <button
         className={activePanel === 'bookmarks' ? 'active' : ''}
         onClick={onOpenBookmarks}
-        title="书签 (Ctrl+F2)"
+        title={t('tooltip.bookmarks')}
       >
-        书签{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
+        {t('toolbar.bookmarks')}{bookmarkCount > 0 ? ` (${bookmarkCount})` : ''}
       </button>
       <button
         className={activePanel === 'timeline' ? 'active' : ''}
         onClick={onOpenTimeline}
-        title="时间线"
+        title={t('tooltip.timeline')}
       >
-        时间线
+        {t('toolbar.timeline')}
       </button>
-      <button onClick={onOpenGoto} title="跳转行 (Ctrl+G)">
-        跳转行
+      <button onClick={onOpenGoto} title={t('tooltip.gotoLine')}>
+        {t('toolbar.gotoLine')}
       </button>
-      <button onClick={handleExport} title="导出搜索结果">
-        导出
+      <button onClick={handleExport} title={t('tooltip.export')}>
+        {t('toolbar.export')}
       </button>
     </div>
   )
